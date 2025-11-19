@@ -194,11 +194,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadDefaultSounds() {
-        // Add default sounds from resources (to be added later)
-        // For now, add placeholder
-        // audioManager.addSoundFromResource("Kick 1", R.raw.kick1)
-        // audioManager.addSoundFromResource("Kick 2", R.raw.kick2)
-        // audioManager.addSoundFromResource("Kick 3", R.raw.kick3)
+        // Add default sounds from resources
+        audioManager.addSoundFromResource("Click", R.raw.kick1)
+        audioManager.addSoundFromResource("Impact", R.raw.kick2)
+        audioManager.addSoundFromResource("Beep", R.raw.kick3)
+        audioManager.addSoundFromResource("Zap", R.raw.kick4)
 
         updateSoundLibraryUI()
     }
