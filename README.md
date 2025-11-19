@@ -31,9 +31,13 @@ This prevents multiple triggers from a single kick and ensures clean note separa
 
 ### Prerequisites
 
-- Android Studio (Arctic Fox or newer)
-- Android SDK (API 26+)
-- Gradle 8.0+
+**Option A: Android Studio (Easiest)**
+- Android Studio (Arctic Fox or newer) - includes Android SDK and Gradle
+
+**Option B: Command Line**
+- Android SDK Command Line Tools
+- Gradle 8.0+ (or use included Gradle wrapper)
+- Java JDK 17+
 
 ### Build Steps
 
@@ -70,6 +74,43 @@ cd beatbag
    - The app will install and launch on your phone
 
 Note: Emulator won't work - BLE requires real hardware
+
+### Alternative: Build from Command Line (No Android Studio)
+
+If you don't want to use Android Studio, you can build and install from the command line:
+
+1. **Install Android SDK Command Line Tools**:
+   - Download from: https://developer.android.com/studio#command-tools
+   - Extract and set `ANDROID_HOME` environment variable:
+     ```bash
+     export ANDROID_HOME=/path/to/android-sdk
+     export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin
+     ```
+
+2. **Install required SDK components**:
+   ```bash
+   sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+   ```
+
+3. **Prepare your phone** (same as above):
+   - Enable Developer Mode and USB Debugging
+   - Connect via USB
+
+4. **Initialize Gradle wrapper** (first time only):
+   ```bash
+   cd ~/code/beatbag
+   gradle wrapper  # Downloads Gradle wrapper jar
+   ```
+
+5. **Build and install**:
+   ```bash
+   ./gradlew installDebug
+   ```
+   The first run will download Gradle automatically.
+
+6. **Launch the app** manually on your phone (look for "BeatBag" in app drawer)
+
+The app will be installed on your connected Android device!
 
 ## Usage
 
