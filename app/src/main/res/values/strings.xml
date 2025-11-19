@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">BeatBag</string>
+    <string name="scan_for_sensor">Scan for Sensor</string>
+    <string name="connect">Connect</string>
+    <string name="disconnect">Disconnect</string>
+    <string name="connected">Connected</string>
+    <string name="disconnected">Disconnected</string>
+    <string name="scanning">Scanning…</string>
+    <string name="sensitivity">Kick Sensitivity</string>
+    <string name="upper_threshold">Upper Threshold</string>
+    <string name="lower_threshold">Lower Threshold</string>
+    <string name="add_sound">Add Sound</string>
+    <string name="sound_library">Sound Library</string>
+    <string name="kick_detected">Kick!</string>
+    <string name="sensor_not_found">Sensor not found</string>
+    <string name="searching_for_wt9011dcl">Searching for WT9011DCL…</string>
+</resources>
