@@ -38,8 +38,7 @@
         android:layout_width="60dp"
         android:layout_height="60dp"
         android:layout_marginTop="24dp"
-        android:background="@android:drawable/ic_menu_circle"
-        android:backgroundTint="@color/sensor_disconnected"
+        android:background="@android:color/darker_gray"
         app:layout_constraintTop_toBottomOf="@id/connectButton"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />

@@ -7,7 +7,6 @@ import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
 import android.content.Context
 import android.util.Log
-import kotlinx.coroutines.delay
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.*
@@ -65,6 +64,8 @@ class BleManager(private val context: Context) {
     private var bluetoothGatt: BluetoothGatt? = null
     private var callback: BleCallback? = null
     private var isScanning = false
+    private var configStep = 0
+    private var configService: BluetoothGattService? = null
 
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
@@ -111,7 +112,21 @@ class BleManager(private val context: Context) {
             characteristic: BluetoothGattCharacteristic,
             status: Int
         ) {
-            Log.d(TAG, "Characteristic write complete: $status")
+            Log.d(TAG, "Characteristic write complete: $status, step: $configStep")
+            if (status == BluetoothGatt.GATT_SUCCESS && configService != null) {
+                continueConfiguration(gatt)
+            }
+        }
+
+        override fun onDescriptorWrite(
+            gatt: BluetoothGatt,
+            descriptor: BluetoothGattDescriptor,
+            status: Int
+        ) {
+            Log.d(TAG, "Descriptor write complete: $status, step: $configStep")
+            if (status == BluetoothGatt.GATT_SUCCESS && configService != null) {
+                continueConfiguration(gatt)
+            }
         }
 
         override fun onCharacteristicChanged(
@@ -182,14 +197,36 @@ class BleManager(private val context: Context) {
         bluetoothGatt = null
     }
 
-    private suspend fun configureSensor(gatt: BluetoothGatt) {
+    private fun configureSensor(gatt: BluetoothGatt) {
+        // Log all available services for debugging
+        Log.d(TAG, "Available services:")
+        for (service in gatt.services) {
+            Log.d(TAG, "  Service UUID: ${service.uuid}")
+            for (char in service.characteristics) {
+                Log.d(TAG, "    Characteristic: ${char.uuid}")
+            }
+        }
+
         val service = gatt.getService(SERVICE_UUID)
         if (service == null) {
-            Log.e(TAG, "Service not found")
+            Log.e(TAG, "Service not found. Looking for: $SERVICE_UUID")
+            // Try to find any service with the notify and write characteristics
+            for (s in gatt.services) {
+                val notifyChar = s.getCharacteristic(NOTIFY_UUID)
+                val writeChar = s.getCharacteristic(WRITE_UUID)
+                if (notifyChar != null && writeChar != null) {
+                    Log.d(TAG, "Found characteristics in service: ${s.uuid}")
+                    configureSensorWithService(gatt, s)
+                    return
+                }
+            }
             callback?.onError("Sensor service not found")
             return
         }
+        configureSensorWithService(gatt, service)
+    }
 
+    private fun configureSensorWithService(gatt: BluetoothGatt, service: BluetoothGattService) {
         val writeChar = service.getCharacteristic(WRITE_UUID)
         val notifyChar = service.getCharacteristic(NOTIFY_UUID)
 
@@ -199,31 +236,64 @@ class BleManager(private val context: Context) {
             return
         }
 
-        // Unlock sensor
-        writeChar.value = CMD_UNLOCK
-        gatt.writeCharacteristic(writeChar)
-        delay(100)
+        configService = service
+        configStep = 0
+        continueConfiguration(gatt)
+    }
 
-        // Set data rate to 100Hz
-        writeChar.value = CMD_SET_RATE_100HZ
-        gatt.writeCharacteristic(writeChar)
-        delay(100)
+    private fun continueConfiguration(gatt: BluetoothGatt) {
+        val service = configService ?: return
+        val writeChar = service.getCharacteristic(WRITE_UUID)
+        val notifyChar = service.getCharacteristic(NOTIFY_UUID)
 
-        // Save configuration
-        writeChar.value = CMD_SAVE_CONFIG
-        gatt.writeCharacteristic(writeChar)
-        delay(100)
+        if (writeChar == null || notifyChar == null) return
 
-        // Enable notifications
-        gatt.setCharacteristicNotification(notifyChar, true)
-        val descriptor = notifyChar.getDescriptor(
-            UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
-        )
-        descriptor?.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
-        gatt.writeDescriptor(descriptor)
-
-        callback?.onConnected()
-        Log.d(TAG, "Sensor configured and ready")
+        when (configStep) {
+            0 -> {
+                // Step 0: Unlock sensor
+                Log.d(TAG, "Step 0: Unlocking sensor")
+                writeChar.value = CMD_UNLOCK
+                gatt.writeCharacteristic(writeChar)
+                configStep++
+            }
+            1 -> {
+                // Step 1: Set data rate to 100Hz
+                Log.d(TAG, "Step 1: Setting 100Hz rate")
+                writeChar.value = CMD_SET_RATE_100HZ
+                gatt.writeCharacteristic(writeChar)
+                configStep++
+            }
+            2 -> {
+                // Step 2: Save configuration
+                Log.d(TAG, "Step 2: Saving config")
+                writeChar.value = CMD_SAVE_CONFIG
+                gatt.writeCharacteristic(writeChar)
+                configStep++
+            }
+            3 -> {
+                // Step 3: Enable notifications
+                Log.d(TAG, "Step 3: Enabling notifications")
+                gatt.setCharacteristicNotification(notifyChar, true)
+                val descriptor = notifyChar.getDescriptor(
+                    UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
+                )
+                if (descriptor != null) {
+                    descriptor.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                    gatt.writeDescriptor(descriptor)
+                    configStep++
+                } else {
+                    Log.e(TAG, "Descriptor not found")
+                    callback?.onError("Failed to enable notifications")
+                }
+            }
+            4 -> {
+                // Configuration complete
+                Log.d(TAG, "Sensor configured and ready")
+                callback?.onConnected()
+                configService = null
+                configStep = 0
+            }
+        }
     }
 
     private fun decodePacket(data: ByteArray) {
