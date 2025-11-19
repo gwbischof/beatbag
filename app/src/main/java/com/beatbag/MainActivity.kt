@@ -214,6 +214,16 @@ class MainActivity : AppCompatActivity() {
         audioManager.addSoundFromResource("Impact", R.raw.kick2)
         audioManager.addSoundFromResource("Beep", R.raw.kick3)
         audioManager.addSoundFromResource("Zap", R.raw.kick4)
+        audioManager.addSoundFromResource("Drip", R.raw.kick5)
+        audioManager.addSoundFromResource("Gear", R.raw.kick6)
+        audioManager.addSoundFromResource("Steam", R.raw.kick7)
+        audioManager.addSoundFromResource("Button", R.raw.kick8)
+        audioManager.addSoundFromResource("Zoom", R.raw.kick9)
+        audioManager.addSoundFromResource("Mech", R.raw.kick10)
+        audioManager.addSoundFromResource("Switch", R.raw.kick11)
+        audioManager.addSoundFromResource("Bloop", R.raw.kick12)
+        audioManager.addSoundFromResource("Pop", R.raw.kick13)
+        audioManager.addSoundFromResource("Thump", R.raw.kick14)
 
         updateSoundLibraryUI()
     }
