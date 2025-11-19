@@ -39,3 +39,4 @@ local.properties
 
 # Android Profiling
 *.hprof
+release.keystore

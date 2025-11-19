@@ -29,9 +29,31 @@ jobs:
     - name: Build Release APK
       run: ./gradlew assembleRelease
 
+    - name: Decode Keystore
+      env:
+        KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+      run: echo "$KEYSTORE_BASE64" | base64 -d > release.keystore
+
+    - name: Sign APK
+      env:
+        KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+      run: |
+        $ANDROID_HOME/build-tools/$(ls $ANDROID_HOME/build-tools | tail -1)/zipalign -v -p 4 \
+          app/build/outputs/apk/release/app-release-unsigned.apk \
+          app/build/outputs/apk/release/app-release-unsigned-aligned.apk
+        $ANDROID_HOME/build-tools/$(ls $ANDROID_HOME/build-tools | tail -1)/apksigner sign \
+          --ks release.keystore \
+          --ks-key-alias $KEY_ALIAS \
+          --ks-pass pass:$KEYSTORE_PASSWORD \
+          --key-pass pass:$KEY_PASSWORD \
+          --out app/build/outputs/apk/release/app-release-signed.apk \
+          app/build/outputs/apk/release/app-release-unsigned-aligned.apk
+
     - name: Upload APK to Release
       env:
         GH_TOKEN: ${{ github.token }}
       run: |
         gh release upload ${{ github.event.release.tag_name }} \
-          ./app/build/outputs/apk/release/app-release-unsigned.apk#BeatBag-${{ github.event.release.tag_name }}.apk
+          ./app/build/outputs/apk/release/app-release-signed.apk#BeatBag-${{ github.event.release.tag_name }}.apk
