@@ -53,7 +53,23 @@ cd beatbag
 
 4. Uncomment sound loading code in `MainActivity.kt` if you added sound files
 
-5. Build and run on your Android device (emulator won't work - needs BLE)
+5. **Prepare your Android phone**:
+   - Enable Developer Mode:
+     - Go to Settings → About Phone
+     - Tap "Build Number" 7 times until it says "You are now a developer"
+   - Enable USB Debugging:
+     - Go to Settings → System → Developer Options
+     - Enable "USB Debugging"
+   - Connect your phone to computer via USB
+
+6. **Run the app**:
+   - In Android Studio, wait for Gradle sync to complete
+   - Your phone should appear in the device dropdown at the top
+   - If prompted on your phone, accept "Allow USB Debugging"
+   - Click the green "Run" button (▶) in Android Studio
+   - The app will install and launch on your phone
+
+Note: Emulator won't work - BLE requires real hardware
 
 ## Usage
 
