@@ -90,6 +90,16 @@
         app:layout_constraintTop_toBottomOf="@id/currentSoundLabel"
         app:layout_constraintStart_toStartOf="parent" />
 
+    <Button
+        android:id="@+id/addSoundButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="+ Add Sound"
+        android:textSize="12sp"
+        app:layout_constraintTop_toTopOf="@id/soundLibraryLabel"
+        app:layout_constraintBottom_toBottomOf="@id/soundLibraryLabel"
+        app:layout_constraintEnd_toEndOf="parent" />
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/soundLibraryGrid"
         android:layout_width="0dp"

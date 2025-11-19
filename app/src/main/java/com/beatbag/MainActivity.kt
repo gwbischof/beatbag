@@ -3,12 +3,14 @@ package com.beatbag
 import android.Manifest
 import android.content.pm.PackageManager
 import android.graphics.Color
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -18,6 +20,8 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.io.File
+import java.io.FileOutputStream
 
 class MainActivity : AppCompatActivity() {
 
@@ -31,6 +35,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var kickText: TextView
     private lateinit var currentSoundText: TextView
     private lateinit var soundLibraryGrid: RecyclerView
+    private lateinit var addSoundButton: Button
     private lateinit var upperThresholdSlider: SeekBar
     private lateinit var lowerThresholdSlider: SeekBar
     private lateinit var upperThresholdValue: TextView
@@ -39,6 +44,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var soundAdapter: SoundAdapter
     private val foundDevices = mutableListOf<Pair<String, String>>()
     private var isConnected = false
+
+    // File picker for adding custom sounds
+    private val pickAudioFile = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        uri?.let { addCustomSound(it) }
+    }
 
     companion object {
         private const val PERMISSION_REQUEST_CODE = 1
@@ -60,6 +70,7 @@ class MainActivity : AppCompatActivity() {
         kickText = findViewById(R.id.kickText)
         currentSoundText = findViewById(R.id.currentSoundText)
         soundLibraryGrid = findViewById(R.id.soundLibraryGrid)
+        addSoundButton = findViewById(R.id.addSoundButton)
         upperThresholdSlider = findViewById(R.id.upperThresholdSlider)
         lowerThresholdSlider = findViewById(R.id.lowerThresholdSlider)
         upperThresholdValue = findViewById(R.id.upperThresholdValue)
@@ -105,6 +116,10 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
             }
+        }
+
+        addSoundButton.setOnClickListener {
+            pickAudioFile.launch("audio/*")
         }
 
         // BLE callbacks
@@ -260,6 +275,45 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
         bleManager.disconnect()
         audioManager.release()
+    }
+
+    private fun addCustomSound(uri: Uri) {
+        try {
+            // Get the file name from content resolver
+            val fileName = contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                val nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                cursor.moveToFirst()
+                cursor.getString(nameIndex)
+            } ?: "custom_sound_${System.currentTimeMillis()}.wav"
+
+            // Remove file extension for the sound name
+            val soundName = fileName.substringBeforeLast(".")
+
+            // Copy file to app's internal storage
+            val soundsDir = File(filesDir, "custom_sounds")
+            if (!soundsDir.exists()) {
+                soundsDir.mkdirs()
+            }
+
+            val destFile = File(soundsDir, fileName)
+            contentResolver.openInputStream(uri)?.use { input ->
+                FileOutputStream(destFile).use { output ->
+                    input.copyTo(output)
+                }
+            }
+
+            // Load the sound into the audio manager
+            audioManager.addSoundFromFile(soundName, destFile.absolutePath)
+            updateSoundLibraryUI()
+
+            runOnUiThread {
+                Toast.makeText(this, "Added sound: $soundName", Toast.LENGTH_SHORT).show()
+            }
+        } catch (e: Exception) {
+            runOnUiThread {
+                Toast.makeText(this, "Error adding sound: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     // RecyclerView Adapter for sound library
