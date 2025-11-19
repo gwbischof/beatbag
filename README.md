@@ -180,6 +180,54 @@ beatbag/
   - Subtracts baseline gravity offset
 - **Magnitude**: `sqrt(x² + y² + z²)`
 
+## Distributing the App
+
+### Building APK Locally
+
+To build an APK you can share with others:
+
+```bash
+cd ~/code/beatbag
+./gradlew assembleRelease
+```
+
+The APK will be at: `app/build/outputs/apk/release/app-release-unsigned.apk`
+
+### Automated Builds with GitHub Actions
+
+The repo includes a GitHub Actions workflow that automatically builds the APK when you create a release:
+
+1. **Push your code to GitHub**:
+   ```bash
+   git push origin main
+   ```
+
+2. **Create a release**:
+   ```bash
+   # Create and push a tag
+   git tag v1.0.0
+   git push origin v1.0.0
+   ```
+
+3. **Create GitHub Release**:
+   - Go to your repo on GitHub
+   - Click "Releases" → "Create a new release"
+   - Select the tag you just pushed (v1.0.0)
+   - Add release notes
+   - Click "Publish release"
+
+4. **Download the APK**:
+   - GitHub Actions will automatically build the APK
+   - Once complete, the APK will be attached to the release
+   - Anyone can download `BeatBag-v1.0.0.apk` from the release page
+
+### Installing on Other Phones
+
+Share the APK file with others. They'll need to:
+1. Download the APK to their Android phone
+2. Enable "Install from Unknown Sources" in Settings → Security
+3. Open the APK file and tap "Install"
+
 ## Related Projects
 
 - [midi-motion](../midi-motion) - Original Python version with MIDI output
