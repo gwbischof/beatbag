@@ -358,9 +358,11 @@ class MainActivity : AppCompatActivity() {
 
                 val currentSound = audioManager.getCurrentSound()
                 if (currentSound?.id == sound.id) {
-                    itemView.setBackgroundColor(ContextCompat.getColor(itemView.context, R.color.purple_200))
+                    (itemView as com.google.android.material.card.MaterialCardView)
+                        .setCardBackgroundColor(ContextCompat.getColor(itemView.context, R.color.purple_200))
                 } else {
-                    itemView.setBackgroundColor(Color.WHITE)
+                    (itemView as com.google.android.material.card.MaterialCardView)
+                        .setCardBackgroundColor(ContextCompat.getColor(itemView.context, android.R.color.white))
                 }
 
                 itemView.setOnClickListener {
