@@ -12,6 +12,7 @@ import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Button
+import android.widget.EditText
 import android.widget.SeekBar
 import android.widget.Spinner
 import android.widget.TextView
@@ -48,6 +49,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var upperThresholdValue: TextView
     private lateinit var lowerThresholdValue: TextView
     private lateinit var collectionSpinner: Spinner
+    private lateinit var addCollectionButton: Button
 
     private lateinit var soundAdapter: SoundAdapter
     private val foundDevices = mutableListOf<Pair<String, String>>()
@@ -89,6 +91,7 @@ class MainActivity : AppCompatActivity() {
         upperThresholdValue = findViewById(R.id.upperThresholdValue)
         lowerThresholdValue = findViewById(R.id.lowerThresholdValue)
         collectionSpinner = findViewById(R.id.collectionSpinner)
+        addCollectionButton = findViewById(R.id.addCollectionButton)
 
         // Set up RecyclerView
         soundAdapter = SoundAdapter { sound ->
@@ -102,6 +105,9 @@ class MainActivity : AppCompatActivity() {
 
         // Load default sounds (will be added later)
         loadDefaultSounds()
+
+        // Load saved configuration
+        audioManager.loadConfiguration()
 
         // Set up collection spinner
         setupCollectionSpinner()
@@ -138,6 +144,10 @@ class MainActivity : AppCompatActivity() {
 
         addSoundButton.setOnClickListener {
             pickAudioFile.launch("audio/*")
+        }
+
+        addCollectionButton.setOnClickListener {
+            showAddCollectionDialog()
         }
 
         // BLE callbacks
@@ -312,6 +322,44 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun showAddCollectionDialog() {
+        val input = EditText(this)
+        input.hint = "Collection name"
+
+        AlertDialog.Builder(this)
+            .setTitle("New Collection")
+            .setMessage("Enter a name for the new collection:")
+            .setView(input)
+            .setPositiveButton("Create") { _, _ ->
+                val collectionName = input.text.toString().trim()
+                if (collectionName.isEmpty()) {
+                    Toast.makeText(this, "Collection name cannot be empty", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+
+                if (audioManager.createCollection(collectionName)) {
+                    // Save configuration
+                    audioManager.saveConfiguration()
+
+                    // Refresh the spinner
+                    setupCollectionSpinner()
+
+                    // Select the new collection
+                    val collections = audioManager.getCollectionNames()
+                    val newIndex = collections.indexOf(collectionName)
+                    if (newIndex != -1) {
+                        collectionSpinner.setSelection(newIndex)
+                    }
+
+                    Toast.makeText(this, "Created collection: $collectionName", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "Collection already exists", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
     private fun showDeviceSelectionDialog() {
         if (foundDevices.isEmpty()) {
             AlertDialog.Builder(this)
@@ -392,6 +440,7 @@ class MainActivity : AppCompatActivity() {
 
             // Load the sound into the audio manager
             audioManager.addSoundFromFile(soundName, destFile.absolutePath)
+            audioManager.saveConfiguration()
             updateSoundLibraryUI()
 
             runOnUiThread {

@@ -4,6 +4,9 @@ import android.content.Context
 import android.media.AudioAttributes
 import android.media.SoundPool
 import android.util.Log
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import java.io.File
 
 /**
  * Manages sound library and audio playback for kick sounds
@@ -13,7 +16,28 @@ class BeatBagAudioManager(private val context: Context) {
     companion object {
         private const val TAG = "BeatBagAudioManager"
         private const val MAX_STREAMS = 5
+        private const val CONFIG_FILE = "audio_config.json"
     }
+
+    // Serializable data classes for persistence (excluding runtime SoundPool IDs)
+    data class SavedSound(
+        val id: Int,
+        val name: String,
+        val resourceId: Int? = null,
+        val filePath: String? = null
+    )
+
+    data class SavedCollection(
+        val name: String,
+        val sounds: List<SavedSound>
+    )
+
+    data class SavedConfiguration(
+        val collections: List<SavedCollection>,
+        val currentCollectionName: String,
+        val selectedSoundIds: Set<Int>,
+        val currentSoundIndex: Int
+    )
 
     data class Sound(
         val id: Int,
@@ -206,6 +230,20 @@ class BeatBagAudioManager(private val context: Context) {
     }
 
     /**
+     * Create a new empty collection
+     * @return true if created successfully, false if collection already exists
+     */
+    fun createCollection(name: String): Boolean {
+        if (collections.containsKey(name)) {
+            Log.w(TAG, "Collection already exists: $name")
+            return false
+        }
+        collections[name] = SoundCollection(name)
+        Log.d(TAG, "Created new collection: $name")
+        return true
+    }
+
+    /**
      * Remove a sound from the current collection
      */
     fun removeSound(id: Int) {
@@ -271,6 +309,119 @@ class BeatBagAudioManager(private val context: Context) {
      */
     fun getSelectedCount(): Int {
         return selectedSoundIds.size
+    }
+
+    /**
+     * Save current configuration to file
+     */
+    fun saveConfiguration() {
+        try {
+            val savedCollections = collections.map { (_, collection) ->
+                SavedCollection(
+                    name = collection.name,
+                    sounds = collection.sounds.map { sound ->
+                        SavedSound(
+                            id = sound.id,
+                            name = sound.name,
+                            resourceId = sound.resourceId,
+                            filePath = sound.filePath
+                        )
+                    }
+                )
+            }
+
+            val config = SavedConfiguration(
+                collections = savedCollections,
+                currentCollectionName = currentCollectionName,
+                selectedSoundIds = selectedSoundIds,
+                currentSoundIndex = currentSoundIndex
+            )
+
+            val gson = Gson()
+            val json = gson.toJson(config)
+            val configFile = File(context.filesDir, CONFIG_FILE)
+            configFile.writeText(json)
+
+            Log.d(TAG, "Configuration saved")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to save configuration", e)
+        }
+    }
+
+    /**
+     * Load configuration from file
+     * Should be called after default sounds are loaded
+     */
+    fun loadConfiguration() {
+        try {
+            val configFile = File(context.filesDir, CONFIG_FILE)
+            if (!configFile.exists()) {
+                Log.d(TAG, "No saved configuration found")
+                return
+            }
+
+            val json = configFile.readText()
+            val gson = Gson()
+            val config = gson.fromJson(json, SavedConfiguration::class.java)
+
+            // Clear existing custom collections (keep defaults if they exist)
+            val defaultCollectionNames = collections.keys.toSet()
+
+            // Load saved collections
+            config.collections.forEach { savedCollection ->
+                // Skip if this is a default collection that already exists
+                if (defaultCollectionNames.contains(savedCollection.name)) {
+                    return@forEach
+                }
+
+                // Create the collection
+                val collection = getOrCreateCollection(savedCollection.name)
+
+                // Load sounds for this collection
+                savedCollection.sounds.forEach { savedSound ->
+                    val soundId = when {
+                        savedSound.resourceId != null -> {
+                            soundPool.load(context, savedSound.resourceId, 1)
+                        }
+                        savedSound.filePath != null && File(savedSound.filePath).exists() -> {
+                            soundPool.load(savedSound.filePath, 1)
+                        }
+                        else -> {
+                            Log.w(TAG, "Sound file not found: ${savedSound.name}")
+                            -1
+                        }
+                    }
+
+                    if (soundId != -1) {
+                        val sound = Sound(
+                            id = savedSound.id,
+                            name = savedSound.name,
+                            resourceId = savedSound.resourceId,
+                            filePath = savedSound.filePath,
+                            soundId = soundId
+                        )
+                        collection.sounds.add(sound)
+
+                        // Update nextSoundId to avoid conflicts
+                        if (savedSound.id >= nextSoundId) {
+                            nextSoundId = savedSound.id + 1
+                        }
+                    }
+                }
+            }
+
+            // Restore state
+            if (collections.containsKey(config.currentCollectionName)) {
+                currentCollectionName = config.currentCollectionName
+            }
+            currentSoundIndex = config.currentSoundIndex
+            selectedSoundIds.clear()
+            selectedSoundIds.addAll(config.selectedSoundIds)
+
+            Log.d(TAG, "Configuration loaded: ${config.collections.size} collections")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to load configuration", e)
+        }
     }
 
     /**

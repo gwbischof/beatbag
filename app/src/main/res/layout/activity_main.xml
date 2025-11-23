@@ -110,6 +110,19 @@
         app:layout_constraintTop_toTopOf="@id/collectionLabel"
         app:layout_constraintBottom_toBottomOf="@id/collectionLabel"
         app:layout_constraintStart_toEndOf="@id/collectionLabel"
+        app:layout_constraintEnd_toStartOf="@id/addCollectionButton" />
+
+    <Button
+        android:id="@+id/addCollectionButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="+"
+        android:textSize="16sp"
+        android:minWidth="48dp"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        app:layout_constraintTop_toTopOf="@id/collectionLabel"
+        app:layout_constraintBottom_toBottomOf="@id/collectionLabel"
         app:layout_constraintEnd_toEndOf="parent" />
 
     <!-- Sound Library Grid -->
