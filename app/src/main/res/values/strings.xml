@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">BeatBag</string>
-    <string name="scan_for_sensor">Scan for Sensor</string>
+    <string name="scan_for_sensor">Scan for Sensor-Bag</string>
     <string name="connect">Connect</string>
     <string name="disconnect">Disconnect</string>
     <string name="connected">Connected</string>

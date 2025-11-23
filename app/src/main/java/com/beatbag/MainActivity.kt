@@ -40,7 +40,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var dataRateText: TextView
     private lateinit var connectButton: Button
     private lateinit var kickIndicator: View
-    private lateinit var kickText: TextView
     private lateinit var currentSoundText: TextView
     private lateinit var soundLibraryGrid: RecyclerView
     private lateinit var addSoundButton: Button
@@ -82,7 +81,6 @@ class MainActivity : AppCompatActivity() {
         dataRateText = findViewById(R.id.dataRateText)
         connectButton = findViewById(R.id.connectButton)
         kickIndicator = findViewById(R.id.kickIndicator)
-        kickText = findViewById(R.id.kickText)
         currentSoundText = findViewById(R.id.currentSoundText)
         soundLibraryGrid = findViewById(R.id.soundLibraryGrid)
         addSoundButton = findViewById(R.id.addSoundButton)
@@ -176,8 +174,7 @@ class MainActivity : AppCompatActivity() {
                     statusText.text = getString(R.string.disconnected)
                     statusText.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.sensor_disconnected))
                     connectButton.text = getString(R.string.scan_for_sensor)
-                    kickIndicator.setBackgroundColor(ContextCompat.getColor(this@MainActivity, R.color.sensor_disconnected))
-                    kickText.text = "Ready"
+                    kickIndicator.setBackgroundResource(R.drawable.circle_indicator)
                     dataRateText.text = "0 Hz"
                     packetCount = 0
                     lastRateUpdate = System.currentTimeMillis()
@@ -220,13 +217,11 @@ class MainActivity : AppCompatActivity() {
 
                     // Visual feedback
                     kickIndicator.setBackgroundColor(ContextCompat.getColor(this@MainActivity, R.color.kick_active))
-                    kickText.text = getString(R.string.kick_detected)
 
                     // Reset indicator after 200ms
                     lifecycleScope.launch {
                         delay(200)
-                        kickIndicator.setBackgroundColor(ContextCompat.getColor(this@MainActivity, R.color.sensor_connected))
-                        kickText.text = "Ready"
+                        kickIndicator.setBackgroundResource(R.drawable.circle_indicator)
                     }
                 }
             }
