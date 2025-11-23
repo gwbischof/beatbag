@@ -25,7 +25,8 @@ class BeatBagAudioManager(private val context: Context) {
 
     private val soundPool: SoundPool
     private val soundLibrary = mutableListOf<Sound>()
-    private var currentSoundIndex = 0
+    private val selectedSoundIds = mutableSetOf<Int>()
+    private var currentSoundIndex = 0  // For backwards compatibility and initial selection
 
     init {
         val audioAttributes = AudioAttributes.Builder()
@@ -80,7 +81,8 @@ class BeatBagAudioManager(private val context: Context) {
     }
 
     /**
-     * Play the currently selected sound with given intensity
+     * Play a random sound from the selected sounds with given intensity
+     * If no sounds are selected, plays the current sound
      * @param intensity Value between 0.0 and 2.0 (normalized kick intensity)
      */
     fun playCurrentSound(intensity: Float = 1.0f) {
@@ -89,7 +91,21 @@ class BeatBagAudioManager(private val context: Context) {
             return
         }
 
-        val sound = soundLibrary[currentSoundIndex]
+        // Get the sound to play
+        val sound = if (selectedSoundIds.isNotEmpty()) {
+            // Pick a random sound from selected sounds
+            val randomId = selectedSoundIds.random()
+            soundLibrary.find { it.id == randomId }
+        } else {
+            // Fall back to current sound if nothing selected
+            soundLibrary.getOrNull(currentSoundIndex)
+        }
+
+        if (sound == null) {
+            Log.w(TAG, "No valid sound to play")
+            return
+        }
+
         if (sound.soundId == -1) {
             Log.w(TAG, "Sound not loaded: ${sound.name}")
             return
@@ -160,11 +176,54 @@ class BeatBagAudioManager(private val context: Context) {
     }
 
     /**
+     * Toggle sound selection for multi-select mode
+     */
+    fun toggleSoundSelection(id: Int) {
+        if (selectedSoundIds.contains(id)) {
+            selectedSoundIds.remove(id)
+            Log.d(TAG, "Deselected sound ID: $id")
+        } else {
+            selectedSoundIds.add(id)
+            Log.d(TAG, "Selected sound ID: $id")
+        }
+    }
+
+    /**
+     * Check if a sound is selected
+     */
+    fun isSoundSelected(id: Int): Boolean {
+        return selectedSoundIds.contains(id)
+    }
+
+    /**
+     * Get all selected sounds
+     */
+    fun getSelectedSounds(): List<Sound> {
+        return soundLibrary.filter { selectedSoundIds.contains(it.id) }
+    }
+
+    /**
+     * Clear all selections
+     */
+    fun clearSelection() {
+        selectedSoundIds.clear()
+        Log.d(TAG, "Cleared all sound selections")
+    }
+
+    /**
+     * Get count of selected sounds
+     */
+    fun getSelectedCount(): Int {
+        return selectedSoundIds.size
+    }
+
+    /**
      * Release resources
      */
     fun release() {
         soundPool.release()
         soundLibrary.clear()
+        selectedSoundIds.clear()
         Log.d(TAG, "Audio manager released")
     }
 }

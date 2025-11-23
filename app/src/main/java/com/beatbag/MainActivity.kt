@@ -78,8 +78,9 @@ class MainActivity : AppCompatActivity() {
 
         // Set up RecyclerView
         soundAdapter = SoundAdapter { sound ->
-            audioManager.selectSound(sound.id)
-            currentSoundText.text = sound.name
+            // Toggle selection instead of selecting a single sound
+            audioManager.toggleSoundSelection(sound.id)
+            updateCurrentSoundText()
             soundAdapter.notifyDataSetChanged()
         }
         soundLibraryGrid.layoutManager = GridLayoutManager(this, 3)
@@ -230,8 +231,16 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateSoundLibraryUI() {
         soundAdapter.updateSounds(audioManager.getAllSounds())
-        val currentSound = audioManager.getCurrentSound()
-        currentSoundText.text = currentSound?.name ?: "None"
+        updateCurrentSoundText()
+    }
+
+    private fun updateCurrentSoundText() {
+        val selectedCount = audioManager.getSelectedCount()
+        currentSoundText.text = if (selectedCount > 0) {
+            "Random ($selectedCount selected)"
+        } else {
+            audioManager.getCurrentSound()?.name ?: "None"
+        }
     }
 
     private fun showDeviceSelectionDialog() {
@@ -356,8 +365,8 @@ class MainActivity : AppCompatActivity() {
             fun bind(sound: BeatBagAudioManager.Sound) {
                 soundName.text = sound.name
 
-                val currentSound = audioManager.getCurrentSound()
-                if (currentSound?.id == sound.id) {
+                // Show selected state (purple for selected, white for unselected)
+                if (audioManager.isSoundSelected(sound.id)) {
                     (itemView as com.google.android.material.card.MaterialCardView)
                         .setCardBackgroundColor(ContextCompat.getColor(itemView.context, R.color.purple_200))
                 } else {
