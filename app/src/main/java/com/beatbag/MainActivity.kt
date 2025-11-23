@@ -36,6 +36,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var audioManager: BeatBagAudioManager
 
     private lateinit var statusText: TextView
+    private lateinit var dataRateText: TextView
     private lateinit var connectButton: Button
     private lateinit var kickIndicator: View
     private lateinit var kickText: TextView
@@ -51,6 +52,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var soundAdapter: SoundAdapter
     private val foundDevices = mutableListOf<Pair<String, String>>()
     private var isConnected = false
+
+    // Data rate tracking
+    private var packetCount = 0
+    private var lastRateUpdate = System.currentTimeMillis()
 
     // File picker for adding custom sounds
     private val pickAudioFile = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
@@ -72,6 +77,7 @@ class MainActivity : AppCompatActivity() {
 
         // Initialize views
         statusText = findViewById(R.id.statusText)
+        dataRateText = findViewById(R.id.dataRateText)
         connectButton = findViewById(R.id.connectButton)
         kickIndicator = findViewById(R.id.kickIndicator)
         kickText = findViewById(R.id.kickText)
@@ -162,12 +168,30 @@ class MainActivity : AppCompatActivity() {
                     connectButton.text = getString(R.string.scan_for_sensor)
                     kickIndicator.setBackgroundColor(ContextCompat.getColor(this@MainActivity, R.color.sensor_disconnected))
                     kickText.text = "Ready"
+                    dataRateText.text = "0 Hz"
+                    packetCount = 0
+                    lastRateUpdate = System.currentTimeMillis()
                 }
             }
 
             override fun onSensorData(data: BleManager.SensorData) {
                 // Process kick detection
                 kickDetector.processSensorData(data.adjustedAccel)
+
+                // Update data rate
+                packetCount++
+                val now = System.currentTimeMillis()
+                val elapsed = now - lastRateUpdate
+
+                // Update display every second
+                if (elapsed >= 1000) {
+                    val rate = (packetCount * 1000.0 / elapsed).toInt()
+                    runOnUiThread {
+                        dataRateText.text = "$rate Hz"
+                    }
+                    packetCount = 0
+                    lastRateUpdate = now
+                }
             }
 
             override fun onError(message: String) {
