@@ -9,7 +9,13 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.*
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
+import android.widget.Button
+import android.widget.SeekBar
+import android.widget.Spinner
+import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -40,6 +46,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var lowerThresholdSlider: SeekBar
     private lateinit var upperThresholdValue: TextView
     private lateinit var lowerThresholdValue: TextView
+    private lateinit var collectionSpinner: Spinner
 
     private lateinit var soundAdapter: SoundAdapter
     private val foundDevices = mutableListOf<Pair<String, String>>()
@@ -75,6 +82,7 @@ class MainActivity : AppCompatActivity() {
         lowerThresholdSlider = findViewById(R.id.lowerThresholdSlider)
         upperThresholdValue = findViewById(R.id.upperThresholdValue)
         lowerThresholdValue = findViewById(R.id.lowerThresholdValue)
+        collectionSpinner = findViewById(R.id.collectionSpinner)
 
         // Set up RecyclerView
         soundAdapter = SoundAdapter { sound ->
@@ -88,6 +96,9 @@ class MainActivity : AppCompatActivity() {
 
         // Load default sounds (will be added later)
         loadDefaultSounds()
+
+        // Set up collection spinner
+        setupCollectionSpinner()
 
         // Set up listeners
         setupListeners()
@@ -210,21 +221,35 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadDefaultSounds() {
-        // Add default sounds from resources
-        audioManager.addSoundFromResource("Click", R.raw.kick1)
-        audioManager.addSoundFromResource("Impact", R.raw.kick2)
-        audioManager.addSoundFromResource("Beep", R.raw.kick3)
-        audioManager.addSoundFromResource("Zap", R.raw.kick4)
-        audioManager.addSoundFromResource("Drip", R.raw.kick5)
-        audioManager.addSoundFromResource("Gear", R.raw.kick6)
-        audioManager.addSoundFromResource("Steam", R.raw.kick7)
-        audioManager.addSoundFromResource("Button", R.raw.kick8)
-        audioManager.addSoundFromResource("Zoom", R.raw.kick9)
-        audioManager.addSoundFromResource("Mech", R.raw.kick10)
-        audioManager.addSoundFromResource("Switch", R.raw.kick11)
-        audioManager.addSoundFromResource("Bloop", R.raw.kick12)
-        audioManager.addSoundFromResource("Pop", R.raw.kick13)
-        audioManager.addSoundFromResource("Thump", R.raw.kick14)
+        // Load General collection sounds
+        audioManager.addSoundFromResource("Click", R.raw.kick1, "General")
+        audioManager.addSoundFromResource("Impact", R.raw.kick2, "General")
+        audioManager.addSoundFromResource("Beep", R.raw.kick3, "General")
+        audioManager.addSoundFromResource("Zap", R.raw.kick4, "General")
+        audioManager.addSoundFromResource("Drip", R.raw.kick5, "General")
+        audioManager.addSoundFromResource("Gear", R.raw.kick6, "General")
+        audioManager.addSoundFromResource("Steam", R.raw.kick7, "General")
+        audioManager.addSoundFromResource("Button", R.raw.kick8, "General")
+        audioManager.addSoundFromResource("Zoom", R.raw.kick9, "General")
+        audioManager.addSoundFromResource("Mech", R.raw.kick10, "General")
+        audioManager.addSoundFromResource("Switch", R.raw.kick11, "General")
+        audioManager.addSoundFromResource("Bloop", R.raw.kick12, "General")
+        audioManager.addSoundFromResource("Pop", R.raw.kick13, "General")
+        audioManager.addSoundFromResource("Thump", R.raw.kick14, "General")
+
+        // Load Farts collection sounds
+        audioManager.addSoundFromResource("Fart 1", R.raw.fart_1, "Farts")
+        audioManager.addSoundFromResource("Fart 2", R.raw.fart_2, "Farts")
+        audioManager.addSoundFromResource("Fart 3", R.raw.fart_3, "Farts")
+        audioManager.addSoundFromResource("Fart 4", R.raw.fart_4, "Farts")
+        audioManager.addSoundFromResource("Fart 5", R.raw.fart_5, "Farts")
+        audioManager.addSoundFromResource("Fart 7", R.raw.fart_7, "Farts")
+        audioManager.addSoundFromResource("Fart 8", R.raw.fart_8, "Farts")
+        audioManager.addSoundFromResource("Fart 9", R.raw.fart_9, "Farts")
+        audioManager.addSoundFromResource("Fart 10", R.raw.fart_10, "Farts")
+        audioManager.addSoundFromResource("Fart Combo", R.raw.fart_combo, "Farts")
+        audioManager.addSoundFromResource("Echo Fart", R.raw.fart_echo, "Farts")
+        audioManager.addSoundFromResource("Small Fart", R.raw.fart_small, "Farts")
 
         updateSoundLibraryUI()
     }
@@ -240,6 +265,26 @@ class MainActivity : AppCompatActivity() {
             "Random ($selectedCount selected)"
         } else {
             audioManager.getCurrentSound()?.name ?: "None"
+        }
+    }
+
+    private fun setupCollectionSpinner() {
+        val collections = audioManager.getCollectionNames()
+        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, collections)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        collectionSpinner.adapter = adapter
+
+        // Set listener for collection changes
+        collectionSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val selectedCollection = collections[position]
+                audioManager.setCurrentCollection(selectedCollection)
+                updateSoundLibraryUI()
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) {
+                // Do nothing
+            }
         }
     }
 

@@ -23,10 +23,17 @@ class BeatBagAudioManager(private val context: Context) {
         var soundId: Int = -1  // SoundPool sound ID
     )
 
+    data class SoundCollection(
+        val name: String,
+        val sounds: MutableList<Sound> = mutableListOf()
+    )
+
     private val soundPool: SoundPool
-    private val soundLibrary = mutableListOf<Sound>()
+    private val collections = mutableMapOf<String, SoundCollection>()
+    private var currentCollectionName = "General"
     private val selectedSoundIds = mutableSetOf<Int>()
     private var currentSoundIndex = 0  // For backwards compatibility and initial selection
+    private var nextSoundId = 0  // Global sound ID counter
 
     init {
         val audioAttributes = AudioAttributes.Builder()
@@ -49,35 +56,42 @@ class BeatBagAudioManager(private val context: Context) {
     }
 
     /**
-     * Add a sound from app resources
+     * Add a sound from app resources to a specific collection
      */
-    fun addSoundFromResource(name: String, resourceId: Int): Int {
+    fun addSoundFromResource(name: String, resourceId: Int, collectionName: String = currentCollectionName): Int {
         val soundId = soundPool.load(context, resourceId, 1)
         val sound = Sound(
-            id = soundLibrary.size,
+            id = nextSoundId++,
             name = name,
             resourceId = resourceId,
             soundId = soundId
         )
-        soundLibrary.add(sound)
-        Log.d(TAG, "Added sound from resource: $name")
+        getOrCreateCollection(collectionName).sounds.add(sound)
+        Log.d(TAG, "Added sound from resource: $name to collection: $collectionName")
         return sound.id
     }
 
     /**
-     * Add a sound from external file path
+     * Add a sound from external file path to a specific collection
      */
-    fun addSoundFromFile(name: String, filePath: String): Int {
+    fun addSoundFromFile(name: String, filePath: String, collectionName: String = currentCollectionName): Int {
         val soundId = soundPool.load(filePath, 1)
         val sound = Sound(
-            id = soundLibrary.size,
+            id = nextSoundId++,
             name = name,
             filePath = filePath,
             soundId = soundId
         )
-        soundLibrary.add(sound)
-        Log.d(TAG, "Added sound from file: $name at $filePath")
+        getOrCreateCollection(collectionName).sounds.add(sound)
+        Log.d(TAG, "Added sound from file: $name at $filePath to collection: $collectionName")
         return sound.id
+    }
+
+    /**
+     * Get or create a collection by name
+     */
+    private fun getOrCreateCollection(name: String): SoundCollection {
+        return collections.getOrPut(name) { SoundCollection(name) }
     }
 
     /**
@@ -86,19 +100,24 @@ class BeatBagAudioManager(private val context: Context) {
      * @param intensity Value between 0.0 and 2.0 (normalized kick intensity)
      */
     fun playCurrentSound(intensity: Float = 1.0f) {
-        if (soundLibrary.isEmpty()) {
-            Log.w(TAG, "No sounds in library")
+        val currentCollection = collections[currentCollectionName]
+        if (currentCollection == null || currentCollection.sounds.isEmpty()) {
+            Log.w(TAG, "No sounds in current collection")
             return
         }
 
         // Get the sound to play
         val sound = if (selectedSoundIds.isNotEmpty()) {
-            // Pick a random sound from selected sounds
-            val randomId = selectedSoundIds.random()
-            soundLibrary.find { it.id == randomId }
+            // Pick a random sound from selected sounds (filter by current collection)
+            val selectedInCollection = currentCollection.sounds.filter { selectedSoundIds.contains(it.id) }
+            if (selectedInCollection.isNotEmpty()) {
+                selectedInCollection.random()
+            } else {
+                currentCollection.sounds.getOrNull(currentSoundIndex)
+            }
         } else {
             // Fall back to current sound if nothing selected
-            soundLibrary.getOrNull(currentSoundIndex)
+            currentCollection.sounds.getOrNull(currentSoundIndex)
         }
 
         if (sound == null) {
@@ -127,49 +146,85 @@ class BeatBagAudioManager(private val context: Context) {
     }
 
     /**
-     * Select a sound by index
+     * Select a sound by index in current collection
      */
     fun selectSound(index: Int) {
-        if (index in soundLibrary.indices) {
+        val currentCollection = collections[currentCollectionName]
+        if (currentCollection != null && index in currentCollection.sounds.indices) {
             currentSoundIndex = index
-            Log.d(TAG, "Selected sound: ${soundLibrary[index].name}")
+            Log.d(TAG, "Selected sound: ${currentCollection.sounds[index].name}")
         } else {
             Log.w(TAG, "Invalid sound index: $index")
         }
     }
 
     /**
-     * Get current sound
+     * Get current sound from current collection
      */
     fun getCurrentSound(): Sound? {
-        return if (soundLibrary.isNotEmpty()) {
-            soundLibrary[currentSoundIndex]
+        val currentCollection = collections[currentCollectionName]
+        return if (currentCollection != null && currentCollection.sounds.isNotEmpty()) {
+            currentCollection.sounds.getOrNull(currentSoundIndex)
         } else {
             null
         }
     }
 
     /**
-     * Get all sounds in library
+     * Get all sounds in current collection
      */
-    fun getAllSounds(): List<Sound> = soundLibrary.toList()
+    fun getAllSounds(): List<Sound> {
+        return collections[currentCollectionName]?.sounds?.toList() ?: emptyList()
+    }
 
     /**
-     * Remove a sound from the library
+     * Switch to a different collection
+     */
+    fun setCurrentCollection(name: String) {
+        if (collections.containsKey(name)) {
+            currentCollectionName = name
+            currentSoundIndex = 0
+            selectedSoundIds.clear()
+            Log.d(TAG, "Switched to collection: $name")
+        } else {
+            Log.w(TAG, "Collection not found: $name")
+        }
+    }
+
+    /**
+     * Get all collection names
+     */
+    fun getCollectionNames(): List<String> {
+        return collections.keys.toList()
+    }
+
+    /**
+     * Get current collection name
+     */
+    fun getCurrentCollectionName(): String {
+        return currentCollectionName
+    }
+
+    /**
+     * Remove a sound from the current collection
      */
     fun removeSound(id: Int) {
-        val index = soundLibrary.indexOfFirst { it.id == id }
+        val currentCollection = collections[currentCollectionName] ?: return
+        val index = currentCollection.sounds.indexOfFirst { it.id == id }
         if (index != -1) {
-            val sound = soundLibrary[index]
+            val sound = currentCollection.sounds[index]
             if (sound.soundId != -1) {
                 soundPool.unload(sound.soundId)
             }
-            soundLibrary.removeAt(index)
+            currentCollection.sounds.removeAt(index)
 
             // Adjust current index if needed
-            if (currentSoundIndex >= soundLibrary.size) {
-                currentSoundIndex = maxOf(0, soundLibrary.size - 1)
+            if (currentSoundIndex >= currentCollection.sounds.size) {
+                currentSoundIndex = maxOf(0, currentCollection.sounds.size - 1)
             }
+
+            // Remove from selection if selected
+            selectedSoundIds.remove(id)
 
             Log.d(TAG, "Removed sound: ${sound.name}")
         }
@@ -196,10 +251,11 @@ class BeatBagAudioManager(private val context: Context) {
     }
 
     /**
-     * Get all selected sounds
+     * Get all selected sounds from current collection
      */
     fun getSelectedSounds(): List<Sound> {
-        return soundLibrary.filter { selectedSoundIds.contains(it.id) }
+        val currentCollection = collections[currentCollectionName]
+        return currentCollection?.sounds?.filter { selectedSoundIds.contains(it.id) } ?: emptyList()
     }
 
     /**
@@ -222,7 +278,7 @@ class BeatBagAudioManager(private val context: Context) {
      */
     fun release() {
         soundPool.release()
-        soundLibrary.clear()
+        collections.clear()
         selectedSoundIds.clear()
         Log.d(TAG, "Audio manager released")
     }

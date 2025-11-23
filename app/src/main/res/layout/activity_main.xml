@@ -78,6 +78,28 @@
         app:layout_constraintStart_toEndOf="@id/currentSoundLabel"
         app:layout_constraintEnd_toEndOf="parent" />
 
+    <!-- Collection Selector -->
+    <TextView
+        android:id="@+id/collectionLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Collection:"
+        android:textSize="14sp"
+        android:layout_marginTop="24dp"
+        app:layout_constraintTop_toBottomOf="@id/currentSoundLabel"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <Spinner
+        android:id="@+id/collectionSpinner"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:minHeight="48dp"
+        app:layout_constraintTop_toTopOf="@id/collectionLabel"
+        app:layout_constraintBottom_toBottomOf="@id/collectionLabel"
+        app:layout_constraintStart_toEndOf="@id/collectionLabel"
+        app:layout_constraintEnd_toEndOf="parent" />
+
     <!-- Sound Library Grid -->
     <TextView
         android:id="@+id/soundLibraryLabel"
@@ -86,8 +108,8 @@
         android:text="@string/sound_library"
         android:textSize="16sp"
         android:textStyle="bold"
-        android:layout_marginTop="24dp"
-        app:layout_constraintTop_toBottomOf="@id/currentSoundLabel"
+        android:layout_marginTop="16dp"
+        app:layout_constraintTop_toBottomOf="@id/collectionSpinner"
         app:layout_constraintStart_toStartOf="parent" />
 
     <Button
